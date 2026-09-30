@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="ro">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0f1216">
+  <meta name="color-scheme" content="dark">
+  <title>Haptic Duo</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="top">
+    <h1>Haptic Duo</h1>
+    <span id="conn-chip" class="chip">deconectat</span>
+  </header>
+
+  <main>
+    <div id="unsupported" class="banner warn" hidden></div>
+
+    <section class="card" id="card-conn">
+      <div class="row">
+        <button id="btn-connect" class="btn primary">Conectează</button>
+        <button id="btn-reconnect" class="btn" hidden>Reconectează</button>
+        <button id="btn-disconnect" class="btn" hidden>Deconectează</button>
+      </div>
+      <p id="conn-msg" class="muted">Apasă „Conectează” și alege „Haptic Duo”.</p>
+      <p id="pair-hint" class="banner warn" hidden>
+        Prima conectare cere PIN-ul de asociere afișat de sistemul de operare: cei 6 cifre din
+        <code>firmware/haptic_duo/ble_passkey.h</code>. Dacă nu a apărut nicio cerere, șterge
+        „Haptic Duo” din lista Bluetooth a telefonului/PC-ului și încearcă din nou.
+      </p>
+    </section>
+
+    <section class="card">
+      <div class="row between">
+        <h2>Stare</h2>
+        <span id="state-badge" class="badge">—</span>
+      </div>
+      <div id="fault-banner" class="banner err" hidden></div>
+      <div class="dials" id="dials"></div>
+      <dl class="kv">
+        <dt>Profil activ</dt><dd id="active-profile">—</dd>
+        <dt>Telemetrie</dt><dd id="tel-state">oprită</dd>
+      </dl>
+      <div class="row">
+        <button id="btn-arm" class="btn warn">Armează…</button>
+        <button id="btn-clear" class="btn" hidden>disarm clear</button>
+        <button id="btn-status" class="btn">Reîmprospătează</button>
+      </div>
+      <p id="arm-why" class="muted small"></p>
+    </section>
+
+    <section class="card">
+      <h2>Configurare motoare</h2>
+      <p class="muted small">
+        Doar când starea e „dezarmat”. Numărul de perechi de poli trebuie <b>măsurat sau confirmat</b>
+        independent, nu presupus; nu există valoare implicită. Limita nu poate depăși 0,6 V.
+        Configurația se pierde la repornirea plăcii.
+      </p>
+      <div class="cfg-grid" id="cfg-grid"></div>
+    </section>
+
+    <section class="card">
+      <h2>Mod și legături</h2>
+      <p id="live-note" class="muted small"></p>
+      <div id="editors"></div>
+    </section>
+
+    <section class="card">
+      <h2>Profile</h2>
+      <p class="muted small">
+        Helperul de pe PC alege automat profilul după numele executabilului aplicației din prim-plan
+        (de ex. <code>chrome.exe</code>); dacă nu există, folosește profilul <code>default</code>.
+        Numele: 1–24 caractere din <code>A-Z a-z 0-9 . _ -</code> (se salvează cu litere mici); maxim 8 profile.
+        Profilele nu conțin poli sau limite de tensiune.
+      </p>
+      <ul id="profile-list" class="plist"></ul>
+      <p id="profile-empty" class="muted small" hidden>Niciun profil salvat.</p>
+      <div class="row">
+        <button id="btn-plist" class="btn">Reîncarcă lista</button>
+      </div>
+      <form id="save-form" class="row nowrap" autocomplete="off">
+        <input id="save-name" type="text" placeholder="nume profil (ex. chrome.exe)" maxlength="24"
+               autocapitalize="off" autocorrect="off" spellcheck="false" aria-label="Nume profil">
+        <button id="btn-save" class="btn primary" type="submit">Salvează curent</button>
+      </form>
+      <p id="save-err" class="err-text small" hidden></p>
+    </section>
+
+    <section class="card">
+      <details id="console-box">
+        <summary>Consolă brută</summary>
+        <pre id="console" aria-live="off"></pre>
+        <label class="small"><input type="checkbox" id="console-tel"> arată telemetria (T …)</label>
+        <form id="console-form" class="row nowrap" autocomplete="off">
+          <input id="console-input" type="text" maxlength="127" placeholder="ex. status" aria-label="Comandă"
+                 autocapitalize="off" autocorrect="off" spellcheck="false">
+          <button class="btn" type="submit">Trimite</button>
+        </form>
+      </details>
+    </section>
+
+    <p class="muted small foot">
+      Web Bluetooth: Chrome/Edge pe Android, Windows, macOS sau Bluefy pe iPhone.
+      Conexiunea se pierde dacă închizi pagina; placa rămâne <b>armată</b> — folosește DISARM.
+    </p>
+  </main>
+
+  <div class="disarm-bar">
+    <button id="btn-disarm" class="disarm" disabled>DISARM</button>
+  </div>
+
+  <div id="toasts" class="toasts" aria-live="polite"></div>
+
+  <dialog id="arm-dialog">
+    <form method="dialog" id="arm-form">
+      <h3>Armezi motoarele?</h3>
+      <p>Motoarele vor începe o aliniere automată și vor fi alimentate. Confirmă fiecare punct:</p>
+      <label class="check"><input type="checkbox" class="arm-check"><span>Butoanele sunt <b>libere</b>, nimic nu le blochează.</span></label>
+      <label class="check"><input type="checkbox" class="arm-check"><span>Sursa este <b>limitată în curent</b> și tensiunea corespunde.</span></label>
+      <label class="check"><input type="checkbox" class="arm-check"><span>Mâinile sunt <b>departe</b> de butoane și de motoare.</span></label>
+      <div class="row end">
+        <button value="cancel" class="btn" id="arm-cancel">Anulează</button>
+        <button value="ok" class="btn warn" id="arm-ok" disabled>Armează</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="confirm-dialog">
+    <form method="dialog">
+      <p id="confirm-text"></p>
+      <div class="row end">
+        <button value="cancel" class="btn" id="confirm-cancel">Anulează</button>
+        <button value="ok" class="btn danger" id="confirm-ok">Confirmă</button>
+      </div>
+    </form>
+  </dialog>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>

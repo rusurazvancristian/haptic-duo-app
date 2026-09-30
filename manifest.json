@@ -1,0 +1,17 @@
+{
+  "name": "Haptic Duo",
+  "short_name": "Haptic Duo",
+  "description": "Panou de control Bluetooth pentru cele două butoane haptice.",
+  "lang": "ro",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0f1216",
+  "theme_color": "#0f1216",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icons/maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
