@@ -42,6 +42,7 @@ export const PP_MAX = 100;
 export const LIMIT_MIN = 0.001;
 export const LIMIT_MAX = 0.6;
 export const MAX_PROFILES = 8;
+export const BATTERY_LOW_V = 3.5; // below this the UI warns; the firmware only reports, it never cuts off
 
 export function fmtNum(v) {
   return String(+Number(v).toFixed(4));
@@ -113,12 +114,15 @@ const ACTION_NAMES = ACTIONS.map((a) => a[0]);
 // then one line per side starting with `left`/`right`. Binding, profile and stream
 // rate lines are parsed tolerantly: any line with a side word, an action word and a
 // step number sets the binding; profile=/stream= keys are picked up wherever they appear.
+// `battery_V=3.92 battery_pct=62` or `battery_V=none` (no cell/divider fitted) fills `battery`,
+// which stays null for firmware that does not report it at all.
 export function parseStatus(lines) {
   const s = {
     state: null,
     fault: null,
     profile: null,
     stream: null,
+    battery: null,
     left: {},
     right: {},
     raw: lines.slice(),
@@ -132,6 +136,13 @@ export function parseStatus(lines) {
     const profileKey = kv.profile ?? kv.active_profile;
     if (profileKey !== undefined) s.profile = profileKey === '-' ? null : profileKey;
     if (kv.stream !== undefined) s.stream = kv.stream;
+    if (kv.battery_V !== undefined) {
+      const volts = Number(kv.battery_V);
+      const pct = Number(kv.battery_pct);
+      s.battery = kv.battery_V !== 'none' && Number.isFinite(volts)
+        ? { present: true, volts, pct: kv.battery_pct !== undefined && Number.isFinite(pct) ? pct : null }
+        : { present: false };
+    }
     if (/^bind/.test(t[0])) {
       for (const key of ['left', 'right']) {
         const [action, stepText] = (kv[key] ?? '').split(/[:,/]/);
@@ -189,6 +200,14 @@ export function parseProfileLine(line) {
     out[key] = { mode, params, action, step };
   }
   return out;
+}
+
+// Text and low-battery flag for the status card; `low` only when a reading exists.
+export function describeBattery(b) {
+  if (!b) return { text: '—', low: false };
+  if (!b.present) return { text: 'nedetectată', low: false };
+  const pct = b.pct === null ? '' : ` · ${b.pct}%`;
+  return { text: `${b.volts.toFixed(2)} V${pct}`, low: b.volts < BATTERY_LOW_V };
 }
 
 export function describeSide(s) {

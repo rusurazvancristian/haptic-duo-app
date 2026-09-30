@@ -89,6 +89,7 @@ input[type=range] { width: 100%; min-height: 32px; padding: 0; accent-color: var
 .dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: #4a5460; margin-right: 5px; }
 .dot.ok { background: var(--ok); }
 .dot.bad { background: var(--err); }
+.batt-low { color: var(--warn); font-weight: 700; }
 
 .kv { display: grid; grid-template-columns: auto 1fr; gap: 2px 12px; margin: 8px 0; }
 .kv dt { color: var(--muted); }

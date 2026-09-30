@@ -23,7 +23,9 @@ fără secrete — se poate publica ca atare pe GitHub Pages (adresa trebuie să
 ## Ce poți face
 
 - **Stare live:** insignă (dezarmat / aliniere / armat / eroare), două cadrane cu unghiul real
-  (telemetrie `stream 20`), sănătatea senzorilor, profilul activ.
+  (telemetrie `stream 20`), sănătatea senzorilor, profilul activ și bateria (tensiune și procent din `status`,
+  reîmprospătate la ~15 s; avertisment sub 3,5 V, „nedetectată” când nu e montată celula). Doar raportare:
+  aplicația și firmware-ul nu opresc nimic la baterie slabă, protecția la subtensiune este BMS-ul celulei.
 - **DISARM** este mereu vizibil, jos. **Armează** cere confirmare (butoane libere, sursă limitată în curent,
   mâini departe). În eroare apare „disarm clear”; eroarea blocată se citește din `status`.
 - **Configurare motoare** (doar dezarmat): perechi de poli (întreg 1–100, **fără valoare implicită**) și

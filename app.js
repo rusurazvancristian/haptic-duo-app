@@ -2,13 +2,14 @@ import { Link } from './ble.js';
 import {
   ACTIONS, MODES, STEP_MIN, STEP_MAX, MAX_PROFILES, PP_MIN, PP_MAX, LIMIT_MIN, LIMIT_MAX,
   fmtNum, defaultParams, modeCommand, bindCommand, validateProfileName,
-  parsePolePairs, parseLimit, parseStatus, parseProfileLine, describeSide,
+  parsePolePairs, parseLimit, parseStatus, parseProfileLine, describeSide, describeBattery, BATTERY_LOW_V,
 } from './protocol.js';
 
 const SIDES = ['left', 'right'];
 const SIDE_NAME = { left: 'Stânga', right: 'Dreapta' };
 const STATE_TEXT = { disabled: 'DEZARMAT', aligning: 'ALINIERE…', armed: 'ARMAT', fault: 'EROARE' };
 const STREAM_HZ = 20;
+const STATUS_POLL_MS = 15000; // battery is only in `status`, so refresh it slowly while connected
 const LIVE_DEBOUNCE_MS = 150;
 const CFG_KEY = 'haptic-duo.config.v1';
 
@@ -20,6 +21,7 @@ const st = {
   tel: null,
   telAt: 0,
   streamAt: 0,
+  statusAt: 0,
   status: null,
   profiles: [],
 };
@@ -187,6 +189,7 @@ function scheduleStatus() {
 
 async function refreshStatus({ force = false } = {}) {
   if (!isConnected()) return;
+  st.statusAt = performance.now();
   const lines = await run('status');
   if (!lines) return;
   st.status = parseStatus(lines);
@@ -629,6 +632,13 @@ function renderAll() {
   $('btn-disarm').disabled = !on;
   if (!on) $('active-profile').textContent = '—';
 
+  const battery = describeBattery(on ? st.status?.battery : null);
+  $('battery').textContent = battery.text;
+  $('battery').classList.toggle('batt-low', battery.low);
+  const bb = $('battery-banner');
+  bb.hidden = !battery.low;
+  bb.textContent = `Baterie scăzută (sub ${BATTERY_LOW_V.toFixed(1)} V): încarcă celula. Doar avertisment — firmware-ul nu oprește nimic; protecția la subtensiune o face BMS-ul celulei.`;
+
   const fresh = on && st.tel && performance.now() - st.telAt < 2500;
   $('tel-state').textContent = !on ? 'oprită' : fresh ? `${STREAM_HZ} Hz` : 'fără date';
 
@@ -729,6 +739,7 @@ function init() {
     const stale = !st.tel || performance.now() - st.telAt > 2500;
     renderDials();
     $('tel-state').textContent = stale ? 'fără date' : `${STREAM_HZ} Hz`;
+    if (performance.now() - st.statusAt > STATUS_POLL_MS && !link.cur) refreshStatus();
     if (stale && performance.now() - st.streamAt > 5000 && !link.cur) startStream();
   }, 1000);
 
